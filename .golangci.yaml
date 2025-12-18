@@ -1,0 +1,26 @@
+# golangci-lint configuration
+
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - staticcheck
+    - govet
+    - errcheck
+    - gosec
+    - misspell
+    - revive
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+      # CLI tools legitimately read/write user files
+      - linters:
+          - gosec
+        text: "G304|G306"

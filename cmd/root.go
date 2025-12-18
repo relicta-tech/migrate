@@ -1,3 +1,4 @@
+// Package cmd implements the CLI commands for the migrate tool.
 package cmd
 
 import (
@@ -43,6 +44,7 @@ Usage:
 	RunE: runMigrate,
 }
 
+// Execute runs the root command.
 func Execute() error {
 	return rootCmd.Execute()
 }
@@ -60,7 +62,7 @@ func init() {
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Printf("migrate %s (commit: %s, built: %s)\n", version, commit, date)
 	},
 }
@@ -69,7 +71,7 @@ var detectCmd = &cobra.Command{
 	Use:   "detect [directory]",
 	Short: "Detect which release tool is configured",
 	Args:  cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		dir := "."
 		if len(args) > 0 {
 			dir = args[0]
@@ -97,7 +99,7 @@ var detectCmd = &cobra.Command{
 	},
 }
 
-func runMigrate(cmd *cobra.Command, args []string) error {
+func runMigrate(_ *cobra.Command, args []string) error {
 	dir := "."
 	if len(args) > 0 {
 		dir = args[0]

@@ -1,0 +1,28 @@
+# Relicta Release Configuration
+# This project uses relicta for release management (dogfooding!)
+
+versioning:
+  strategy: conventional
+  tag_prefix: v
+
+changelog:
+  enabled: true
+  file: CHANGELOG.md
+
+git:
+  require_clean_tree: true
+  push_tags: true
+  create_tag: true
+  allowed_branches:
+    - main
+
+plugins:
+  - name: github
+    enabled: true
+    config:
+      draft: false
+      prerelease: false
+      assets:
+        - "dist/migrate_*.tar.gz"
+        - "dist/migrate_*.zip"
+        - "dist/checksums.txt"

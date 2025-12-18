@@ -12,6 +12,7 @@ import (
 // Tool represents a release management tool.
 type Tool string
 
+// Tool constants for supported release management tools.
 const (
 	ToolNone            Tool = "none"
 	ToolSemanticRelease Tool = "semantic-release"
