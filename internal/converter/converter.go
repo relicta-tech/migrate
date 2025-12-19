@@ -497,11 +497,14 @@ func extractGoReleaserAssets(data map[string]any, projectName string) []string {
 	for _, os := range goos {
 		for _, arch := range goarch {
 			// Convert to Relicta naming: plugin-name_os_arch
-			archName := arch
-			if arch == "amd64" {
+			var archName string
+			switch arch {
+			case "amd64":
 				archName = "x86_64"
-			} else if arch == "arm64" {
+			case "arm64":
 				archName = "aarch64"
+			default:
+				archName = arch
 			}
 
 			ext := ".tar.gz"

@@ -23,6 +23,9 @@ plugins:
       draft: false
       prerelease: false
       assets:
-        - "dist/migrate_*.tar.gz"
-        - "dist/migrate_*.zip"
+        - "dist/migrate_darwin_arm64.tar.gz"
+        - "dist/migrate_darwin_amd64.tar.gz"
+        - "dist/migrate_linux_arm64.tar.gz"
+        - "dist/migrate_linux_amd64.tar.gz"
+        - "dist/migrate_windows_amd64.zip"
         - "dist/checksums.txt"

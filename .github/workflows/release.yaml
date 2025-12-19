@@ -3,36 +3,118 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+
+env:
+  BINARY_NAME: migrate
 
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin_arm64
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin_amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux_arm64
+          - goos: linux
+            goarch: amd64
+            suffix: linux_amd64
+          - goos: windows
+            goarch: amd64
+            suffix: windows_amd64
+            ext: .exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${{ github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+          DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          go build -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+            -o ${{ env.BINARY_NAME }}_${{ matrix.suffix }}${{ matrix.ext }}
+
+      - name: Package (Unix)
+        if: matrix.goos != 'windows'
+        run: |
+          tar -czvf ${{ env.BINARY_NAME }}_${{ matrix.suffix }}.tar.gz \
+            ${{ env.BINARY_NAME }}_${{ matrix.suffix }}
+
+      - name: Package (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          zip ${{ env.BINARY_NAME }}_${{ matrix.suffix }}.zip \
+            ${{ env.BINARY_NAME }}_${{ matrix.suffix }}.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}_${{ matrix.suffix }}
+          path: ${{ env.BINARY_NAME }}_${{ matrix.suffix }}.*
+
   release:
     name: Release
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          go-version: '1.22'
+          path: artifacts
 
-      - name: Build release binaries
-        run: make release-build
-
-      - name: Install relicta
+      - name: Flatten artifacts
         run: |
-          curl -sL https://github.com/relicta-tech/relicta/releases/latest/download/relicta_Linux_x86_64.tar.gz | tar xz
-          chmod +x relicta
-          sudo mv relicta /usr/local/bin/
+          mkdir -p dist
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} dist/ \;
 
-      - name: Publish release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate checksums
+        working-directory: dist
         run: |
-          relicta publish --yes
+          sha256sum *.tar.gz *.zip > checksums.txt
+
+      - name: Generate attestations
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/${{ env.BINARY_NAME }}_darwin_arm64.tar.gz
+            dist/${{ env.BINARY_NAME }}_darwin_amd64.tar.gz
+            dist/${{ env.BINARY_NAME }}_linux_arm64.tar.gz
+            dist/${{ env.BINARY_NAME }}_linux_amd64.tar.gz
+            dist/${{ env.BINARY_NAME }}_windows_amd64.zip
+
+      - name: Release with Relicta
+        uses: relicta-tech/relicta-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          command: publish
+          plugins: github
