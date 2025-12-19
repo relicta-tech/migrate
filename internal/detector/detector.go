@@ -18,6 +18,7 @@ const (
 	ToolSemanticRelease Tool = "semantic-release"
 	ToolReleaseIt       Tool = "release-it"
 	ToolStandardVersion Tool = "standard-version"
+	ToolGoReleaser      Tool = "goreleaser"
 )
 
 // Result contains detection results.
@@ -35,6 +36,7 @@ func Detect(dir string) (*Result, error) {
 		detectSemanticRelease,
 		detectReleaseIt,
 		detectStandardVersion,
+		detectGoReleaser,
 	}
 
 	for _, detect := range detectors {
@@ -278,4 +280,85 @@ func countPlugins(plugins any) int {
 	default:
 		return 0
 	}
+}
+
+// detectGoReleaser looks for GoReleaser configuration.
+func detectGoReleaser(dir string) (*Result, error) {
+	configFiles := []string{
+		".goreleaser.yml",
+		".goreleaser.yaml",
+		"goreleaser.yml",
+		"goreleaser.yaml",
+	}
+
+	for _, file := range configFiles {
+		path := filepath.Join(dir, file)
+		if data, err := readConfigFile(path); err == nil {
+			return &Result{
+				Tool:       ToolGoReleaser,
+				ConfigFile: path,
+				ConfigData: data,
+				Details:    extractGoReleaserDetails(data),
+			}, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// extractGoReleaserDetails extracts key details from GoReleaser config.
+func extractGoReleaserDetails(data map[string]any) map[string]any {
+	details := make(map[string]any)
+
+	// Extract project name
+	if projectName, ok := data["project_name"].(string); ok {
+		details["projectName"] = projectName
+	}
+
+	// Count builds
+	if builds, ok := data["builds"].([]any); ok {
+		details["buildsCount"] = len(builds)
+	}
+
+	// Check for archives
+	if archives, ok := data["archives"].([]any); ok {
+		details["archivesCount"] = len(archives)
+	}
+
+	// Check release config
+	if release, ok := data["release"].(map[string]any); ok {
+		if github, ok := release["github"].(map[string]any); ok {
+			details["github"] = github
+		}
+		if draft, ok := release["draft"].(bool); ok {
+			details["draft"] = draft
+		}
+		if prerelease, ok := release["prerelease"]; ok {
+			details["prerelease"] = prerelease
+		}
+	}
+
+	// Check for changelog config
+	if changelog, ok := data["changelog"].(map[string]any); ok {
+		if skip, ok := changelog["skip"].(bool); ok {
+			details["changelogSkip"] = skip
+		}
+		if sort, ok := changelog["sort"].(string); ok {
+			details["changelogSort"] = sort
+		}
+	}
+
+	// Extract GOOS/GOARCH targets
+	if builds, ok := data["builds"].([]any); ok && len(builds) > 0 {
+		if build, ok := builds[0].(map[string]any); ok {
+			if goos, ok := build["goos"].([]any); ok {
+				details["goos"] = goos
+			}
+			if goarch, ok := build["goarch"].([]any); ok {
+				details["goarch"] = goarch
+			}
+		}
+	}
+
+	return details
 }

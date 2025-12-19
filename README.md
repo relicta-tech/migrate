@@ -9,6 +9,7 @@ Migration tool for switching to [Relicta](https://github.com/relicta-tech/relict
 | **semantic-release** | `.releaserc`, `.releaserc.json`, `.releaserc.yaml`, `release.config.js`, `package.json` |
 | **release-it** | `.release-it.json`, `.release-it.yaml`, `.release-it.js`, `package.json` |
 | **standard-version** | `.versionrc`, `.versionrc.json`, `package.json` |
+| **goreleaser** | `.goreleaser.yml`, `.goreleaser.yaml`, `goreleaser.yml`, `goreleaser.yaml` |
 
 ## Installation
 
@@ -94,6 +95,19 @@ Flags:
 | `skip.tag` | `git.create_tag` |
 | `releaseCommitMessageFormat` | `git.commit_message` |
 | `infile` | `changelog.file` |
+
+### From GoReleaser
+
+| GoReleaser | Relicta |
+|------------|---------|
+| `release.github` | `plugins.github.config` |
+| `release.draft` | `plugins.github.config.draft` |
+| `release.prerelease` | `plugins.github.config.prerelease` |
+| `changelog.skip` | `changelog.enabled` |
+| `builds[].goos/goarch` | `plugins.github.config.assets` |
+| `release.name_template` | `plugins.github.config.name_template` |
+
+**Note:** GoReleaser migration generates a `release.config.yaml` but you'll also need to update your GitHub workflow to use `relicta-tech/relicta-action` instead of `goreleaser/goreleaser-action`. See the [plugin release workflow template](https://github.com/relicta-tech/relicta/blob/main/docs/security/plugin-release-workflow.yaml) for an example.
 
 ## Example Output
 
